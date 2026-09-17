@@ -1,46 +1,54 @@
-name: Build APK
+name: Build Flutter APK
 
 on:
   push:
-    branches: [ main ]
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
   workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Java
+      - name: Set up Java 17
         uses: actions/setup-java@v4
         with:
-          distribution: 'zulu'
+          distribution: 'temurin'
           java-version: '17'
 
-      - name: Setup Flutter
+      - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
+          cache: true
 
-      - name: Create skeleton & inject permissions
+      - name: Create Flutter skeleton
         run: |
           flutter create --org com.amir /tmp/skeleton
           cp -r /tmp/skeleton/android .
-          MANIFEST="android/app/src/main/AndroidManifest.xml"
-          PERMS='    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>\n    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>\n    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM"/>\n    <uses-permission android:name="android.permission.USE_EXACT_ALARM"/>'
-          sed -i "/<manifest/a $PERMS" "$MANIFEST"
 
-      - name: Clean and Get Dependencies
-        run: |
-          flutter clean
-          flutter pub get
+          # تنظیم minSdkVersion روی 21 برای پشتیبانی از نوتیفیکیشن
+          sed -i 's/minSdkVersion flutter.minSdkVersion/minSdkVersion 21/g' android/app/build.gradle || true
+          sed -i 's/minSdk = flutter.minSdkVersion/minSdk = 21/g' android/app/build.gradle.kts || true
+
+          # افزودن مجوزهای لازم نوتیفیکیشن به AndroidManifest.xml
+          MANIFEST="android/app/src/main/AndroidManifest.xml"
+          PERMS="    <uses-permission android:name=\"android.permission.POST_NOTIFICATIONS\"/>\n    <uses-permission android:name=\"android.permission.RECEIVE_BOOT_COMPLETED\"/>\n    <uses-permission android:name=\"android.permission.SCHEDULE_EXACT_ALARM\"/>\n    <uses-permission android:name=\"android.permission.USE_EXACT_ALARM\"/>\n"
+          sed -i "s|<application|$PERMS    <application|" "$MANIFEST"
+
+      - name: Install dependencies
+        run: flutter pub get
 
       - name: Build Release APK
         run: flutter build apk --release
 
-      - name: Upload Artifact
+      - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: MedReminder-APK
+          name: Med-Reminder-App
           path: build/app/outputs/flutter-apk/app-release.apk
