@@ -1,9 +1,29 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:timezone/data/latest.dart' as tz;
+import 'package:timezone/timezone.dart' as tz;
 
-void main() {
+final FlutterLocalNotificationsPlugin notificationsPlugin =
+    FlutterLocalNotificationsPlugin();
+
+Future<void> initNotifications() async {
+  tz.initializeTimeZones();
+  
+  const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
+  const initSettings = InitializationSettings(android: androidSettings);
+
+  await notificationsPlugin.initialize(initSettings);
+
+  final androidPlatform = notificationsPlugin.resolvePlatformSpecificImplementation<
+      AndroidFlutterLocalNotificationsPlugin>();
+  await androidPlatform?.requestNotificationsPermission();
+}
+
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await initNotifications();
   runApp(const MedReminderApp());
 }
 
@@ -98,6 +118,28 @@ class _HomeScreenState extends State<HomeScreen> {
     final String encoded =
         jsonEncode(medicines.map((m) => m.toMap()).toList());
     await prefs.setString('medicines_data', encoded);
+  }
+
+  Future<void> _sendTestNotification() async {
+    const androidDetails = AndroidNotificationDetails(
+      'med_channel',
+      'یادآور دارو',
+      channelDescription: 'نوتیفیکیشن‌های یادآوری مصرف دارو',
+      importance: Importance.max,
+      priority: Priority.high,
+    );
+    const details = NotificationDetails(android: androidDetails);
+
+    await notificationsPlugin.zonedSchedule(
+      0,
+      'تست یادآور دارو',
+      'سیستم نوتیفیکیشن برنامه با موفقیت فعال شد!',
+      tz.TZDateTime.now(tz.local).add(const Duration(seconds: 5)),
+      details,
+      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      uiLocalNotificationDateInterpretation:
+          UILocalNotificationDateInterpretation.absoluteTime,
+    );
   }
 
   void _addMedicineDialog() {
@@ -247,6 +289,22 @@ class _HomeScreenState extends State<HomeScreen> {
           centerTitle: true,
           backgroundColor: Colors.teal,
           foregroundColor: Colors.white,
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.notifications_active),
+              tooltip: 'تست نوتیفیکیشن',
+              onPressed: () async {
+                await _sendTestNotification();
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('نوتیفیکیشن تست ۵ ثانیه دیگر ارسال می‌شود...'),
+                    ),
+                  );
+                }
+              },
+            )
+          ],
         ),
         body: medicines.isEmpty
             ? const Center(
