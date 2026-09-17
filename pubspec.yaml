@@ -1,24 +1,44 @@
-name: med_reminder
-description: "A smart offline medication reminder app"
-publish_to: 'none'
-version: 1.0.0+1
+name: Build APK
 
-environment:
-  sdk: '>=3.0.0 <4.0.0'
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
 
-dependencies:
-  flutter:
-    sdk: flutter
-  flutter_local_notifications: ^16.0.0
-  timezone: ^0.9.2
-  shared_preferences: ^2.2.0
+jobs:
+  build:
+    runs-on: ubuntu-latest
 
-dev_dependencies:
-  flutter_test:
-    sdk: flutter
+    steps:
+      - uses: actions/checkout@v4
 
-flutter:
-  uses-material-design: true
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.19.6'
+          channel: 'stable'
+
+      - name: Create Flutter skeleton
+        run: |
+          flutter config --no-analytics
+          mkdir -p /tmp/skeleton
+          cd /tmp/skeleton
+          flutter create --org com.garshasb --project-name med_reminder skeleton_app
+          echo "Skeleton created successfully"
+          ls -la
+
+      - name: Copy android folder into project
+        run: |
+          cp -r /tmp/skeleton/skeleton_app/android ./android
+          ls -la android
+
+      - name: Install dependencies
         run: flutter pub get
 
       - name: Build APK
