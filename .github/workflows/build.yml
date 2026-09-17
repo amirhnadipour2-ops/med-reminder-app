@@ -26,14 +26,25 @@ jobs:
 
       - name: Create Flutter skeleton
         run: |
-          flutter create --org com.garshasb.medreminder --project-name med_reminder temp_proj
-          cp -r temp_proj/android .
-          rm -rf temp_proj
+          flutter config --no-analytics
+          mkdir -p /tmp/skeleton
+          cd /tmp/skeleton
+          flutter create --org com.garshasb --project-name med_reminder skeleton_app
+          cp -r skeleton_app/android $GITHUB_WORKSPACE/android
 
       - name: Install dependencies
-        run: flutter pub get
+        run: |
+          flutter clean
+          flutter pub get
 
       - name: Build APK
+        run: flutter build apk --release
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: MedReminder-APK
+          path: build/app/outputs/flutter-apk/app-release.apk
         run: flutter build apk --split-per-abi=false
 
       - name: Upload APK
