@@ -32,11 +32,9 @@ jobs:
           flutter create --org com.amir /tmp/skeleton
           cp -r /tmp/skeleton/android .
 
-          # تنظیم minSdkVersion روی 21 برای پشتیبانی از نوتیفیکیشن
           sed -i 's/minSdkVersion flutter.minSdkVersion/minSdkVersion 21/g' android/app/build.gradle || true
           sed -i 's/minSdk = flutter.minSdkVersion/minSdk = 21/g' android/app/build.gradle.kts || true
 
-          # افزودن مجوزهای لازم نوتیفیکیشن به AndroidManifest.xml
           MANIFEST="android/app/src/main/AndroidManifest.xml"
           PERMS="    <uses-permission android:name=\"android.permission.POST_NOTIFICATIONS\"/>\n    <uses-permission android:name=\"android.permission.RECEIVE_BOOT_COMPLETED\"/>\n    <uses-permission android:name=\"android.permission.SCHEDULE_EXACT_ALARM\"/>\n    <uses-permission android:name=\"android.permission.USE_EXACT_ALARM\"/>\n"
           sed -i "s|<application|$PERMS    <application|" "$MANIFEST"
