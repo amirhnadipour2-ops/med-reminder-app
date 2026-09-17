@@ -1,39 +1,24 @@
-name: Build APK
+name: med_reminder
+description: "A smart offline medication reminder app"
+publish_to: 'none'
+version: 1.0.0+1
 
-on:
-  push:
-    branches: [ "main" ]
-  workflow_dispatch:
+environment:
+  sdk: '>=3.0.0 <4.0.0'
 
-jobs:
-  build:
-    runs-on: ubuntu-latest
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_local_notifications: ^16.0.0
+  timezone: ^0.9.2
+  shared_preferences: ^2.2.0
 
-    steps:
-      - uses: actions/checkout@v4
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
 
-      - name: Set up Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'zulu'
-          java-version: '17'
-
-      - name: Set up Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          flutter-version: '3.19.6'
-          channel: 'stable'
-
-      - name: Setup Android Project Skeleton
-        run: |
-          mkdir temp_app
-          cd temp_app
-          flutter create --org com.garshasb.medreminder --project-name med_reminder .
-          cp -r android ../
-          cd ..
-          rm -rf temp_app
-
-      - name: Install dependencies
+flutter:
+  uses-material-design: true
         run: flutter pub get
 
       - name: Build APK
