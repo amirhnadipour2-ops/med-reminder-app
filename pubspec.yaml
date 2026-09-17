@@ -18,18 +18,3 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
-        run: |
-          cp -r /tmp/skeleton/skeleton_app/android ./android
-          ls -la android
-
-      - name: Install dependencies
-        run: flutter pub get
-
-      - name: Build APK
-        run: flutter build apk --release
-
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: MedReminder-APK
-          path: build/app/outputs/flutter-apk/app-release.apk
