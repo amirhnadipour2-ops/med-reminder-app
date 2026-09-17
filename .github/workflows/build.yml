@@ -1,29 +1,45 @@
-name: Build APK
+namename: Build APK
+
 on:
   push:
-    branches: [ "main" ]
+    branches: [ main ]
   workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
           java-version: '17'
-      - uses: subosito/flutter-action@v2
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.19.6'
           channel: 'stable'
-      - name: Create skeleton
-        run: flutter config --no-analytics && mkdir -p /tmp/skel && cd /tmp/skel && flutter create --org com.garshasb --project-name med_reminder app && cp -r app/android $GITHUB_WORKSPACE/android
-      - name: Install dependencies
-        run: flutter clean && flutter pub get
-      - name: Build APK
+
+      - name: Create skeleton & inject permissions
+        run: |
+          flutter create --org com.amir /tmp/skeleton
+          cp -r /tmp/skeleton/android .
+          MANIFEST="android/app/src/main/AndroidManifest.xml"
+          PERMS='    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>\n    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>\n    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM"/>\n    <uses-permission android:name="android.permission.USE_EXACT_ALARM"/>'
+          sed -i "/<manifest/a $PERMS" "$MANIFEST"
+
+      - name: Clean and Get Dependencies
+        run: |
+          flutter clean
+          flutter pub get
+
+      - name: Build Release APK
         run: flutter build apk --release
-      - name: Upload APK
+
+      - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: MedReminder-APK
