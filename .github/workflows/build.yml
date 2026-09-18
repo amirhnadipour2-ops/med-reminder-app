@@ -27,17 +27,57 @@ jobs:
           channel: 'stable'
           cache: true
 
-      - name: Create Flutter skeleton
+      - name: Create Flutter skeleton and configure Android
         run: |
-          flutter create --org com.amir /tmp/skeleton
+          flutter create --org com.amir --project-name med_reminder /tmp/skeleton
           cp -r /tmp/skeleton/android .
 
-          sed -i 's/minSdkVersion flutter.minSdkVersion/minSdkVersion 21/g' android/app/build.gradle || true
-          sed -i 's/minSdk = flutter.minSdkVersion/minSdk = 21/g' android/app/build.gradle.kts || true
+          echo "flutter.minSdkVersion=21" >> android/local.properties
+
+          GRADLE_KTS="android/app/build.gradle.kts"
+          GRADLE_GROOVY="android/app/build.gradle"
+
+          sed -i 's/minSdkVersion flutter.minSdkVersion/minSdkVersion 21/g' "$GRADLE_GROOVY" 2>/dev/null || true
+          sed -i 's/minSdk = flutter.minSdkVersion/minSdk = 21/g' "$GRADLE_KTS" 2>/dev/null || true
+
+          if [ -f "$GRADLE_KTS" ]; then
+          cat >> "$GRADLE_KTS" << 'EOF'
+
+          android {
+              compileOptions {
+                  isCoreLibraryDesugaringEnabled = true
+              }
+          }
+
+          dependencies {
+              coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
+          }
+          EOF
+          elif [ -f "$GRADLE_GROOVY" ]; then
+          cat >> "$GRADLE_GROOVY" << 'EOF'
+
+          android {
+              compileOptions {
+                  coreLibraryDesugaringEnabled true
+              }
+          }
+
+          dependencies {
+              coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.1.4'
+          }
+          EOF
+          fi
 
           MANIFEST="android/app/src/main/AndroidManifest.xml"
-          PERMS="    <uses-permission android:name=\"android.permission.POST_NOTIFICATIONS\"/>\n    <uses-permission android:name=\"android.permission.RECEIVE_BOOT_COMPLETED\"/>\n    <uses-permission android:name=\"android.permission.SCHEDULE_EXACT_ALARM\"/>\n    <uses-permission android:name=\"android.permission.USE_EXACT_ALARM\"/>\n"
+          PERMS="    <uses-permission android:name=\"android.permission.POST_NOTIFICATIONS\"/>\n    <uses-permission android:name=\"android.permission.RECEIVE_BOOT_COMPLETED\"/>\n    <uses-permission android:name=\"android.permission.SCHEDULE_EXACT_ALARM\"/>\n    <uses-permission android:name=\"android.permission.USE_EXACT_ALARM\"/>\n    <uses-permission android:name=\"android.permission.VIBRATE\"/>\n"
           sed -i "s|<application|$PERMS    <application|" "$MANIFEST"
+
+      - name: Show generated files (debug)
+        run: |
+          echo "---- build.gradle(.kts) ----"
+          cat android/app/build.gradle.kts 2>/dev/null || cat android/app/build.gradle
+          echo "---- AndroidManifest.xml ----"
+          cat android/app/src/main/AndroidManifest.xml
 
       - name: Install dependencies
         run: flutter pub get
